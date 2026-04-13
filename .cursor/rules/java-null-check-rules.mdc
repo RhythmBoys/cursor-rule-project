@@ -1,0 +1,88 @@
+---
+description: Java空值检查规则 - 统一使用java.util.Objects进行空值判断
+globs: "**/*.java"
+alwaysApply: false
+---
+
+# Java Null Check Rules
+
+## 核心原则
+
+统一使用 `java.util.Objects` 进行空值判断，禁止混用多种空值检查方式。
+
+## 规则
+
+### 使用 Objects 判断空值
+
+| 场景 | 正确写法 | 禁止写法 |
+|------|---------|---------|
+| 判空 | `Objects.isNull(obj)` | `obj == null` (条件表达式中仍可用) |
+| 判非空 | `Objects.nonNull(obj)` | `obj != null` (条件表达式中仍可用) |
+| 非空断言 | `Objects.requireNonNull(obj)` | 手动 `if + throw` |
+| 带消息断言 | `Objects.requireNonNull(obj, "msg")` | 手动 `if + throw` |
+
+### 适用范围
+
+- **方法参数校验**: 使用 `Objects.requireNonNull(param, "message")`
+- **集合过滤**: 使用 `Objects::nonNull` 作为方法引用
+- **条件判断**: 使用 `Objects.isNull()` / `Objects.nonNull()`
+
+## 代码示例
+
+### 错误示例 ❌
+
+```java
+public class UserService {
+
+    public UserResponse getUser(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("id不能为空");
+        }
+
+        UserEntity user = userMapper.selectById(id);
+        if (user != null) {
+            return convertToResponse(user);
+        }
+        return null;
+    }
+
+    public List<UserResponse> filterValid(List<UserEntity> users) {
+        return users.stream()
+                .filter(u -> u != null)
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+}
+```
+
+### 正确示例 ✅
+
+```java
+import java.util.Objects;
+
+public class UserService {
+
+    public UserResponse getUser(Long id) {
+        Objects.requireNonNull(id, "id不能为空");
+
+        UserEntity user = userMapper.selectById(id);
+        if (Objects.nonNull(user)) {
+            return convertToResponse(user);
+        }
+        return null;
+    }
+
+    public List<UserResponse> filterValid(List<UserEntity> users) {
+        return users.stream()
+                .filter(Objects::nonNull)
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+}
+```
+
+## 例外情况
+
+- **三方框架要求**: 某些框架 API 明确要求 `== null` 判断时可例外
+- **Optional**: 涉及 `Optional` 时优先用 `Optional.ofNullable()` 而非手动判空
+- **简单 if 条件**: `if (obj == null) return;` 这类极简场景可保留，但建议统一

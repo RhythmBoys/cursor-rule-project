@@ -1,0 +1,148 @@
+---
+description: Python项目规范规则 - 依赖管理、项目结构、编码规范等必要检查
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Python Project Rules
+
+## 依赖管理（必须）
+
+Python 项目必须包含依赖配置文件，缺失时自动补充。
+
+### 依赖文件优先级
+
+按以下顺序检查，存在任一即可：
+
+| 优先级 | 文件 | 适用场景 |
+|--------|------|---------|
+| 1 | `pyproject.toml` | 现代项目标准（推荐） |
+| 2 | `requirements.txt` | 传统 pip 项目 |
+| 3 | `setup.py` / `setup.cfg` | 可发布的库/包 |
+| 4 | `Pipfile` | Pipenv 管理的项目 |
+| 5 | `environment.yml` | Conda 环境 |
+
+### 自动补充规则
+
+- 若以上文件均不存在，自动生成 `requirements.txt`
+- 扫描项目中所有 `.py` 文件的 `import` 语句，提取三方依赖写入
+- 生成时不指定版本号，由用户后续锁定
+
+### requirements.txt 格式规范
+
+```txt
+# 核心依赖
+flask
+sqlalchemy
+
+# 开发依赖
+pytest
+black
+```
+
+## 项目结构规范
+
+Python 项目应包含以下基本文件，缺失时提醒或自动补充：
+
+| 文件 | 必要性 | 说明 |
+|------|--------|------|
+| 依赖配置文件 | **必须** | 见上方依赖文件优先级 |
+| `.gitignore` | **必须** | 须包含 `__pycache__/`、`*.pyc`、`.env`、`venv/` 等 |
+| `README.md` | **必须** | 项目说明 |
+| `__init__.py` | 推荐 | 包目录下应有，标识 Python 包 |
+| `.env.example` | 推荐 | 有环境变量时提供示例文件，禁止提交 `.env` |
+
+### .gitignore 必须包含的条目
+
+```gitignore
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.env
+venv/
+.venv/
+*.sqlite3
+.pytest_cache/
+.mypy_cache/
+```
+
+## 编码规范
+
+### 导入顺序（PEP 8）
+
+按以下分组排列，组间空一行：
+
+1. 标准库（`os`, `sys`, `json` 等）
+2. 三方库（`flask`, `requests` 等）
+3. 本地模块
+
+```python
+import os
+import sys
+
+import flask
+import requests
+
+from myapp import utils
+```
+
+### 类型提示
+
+- 函数参数和返回值应添加类型提示（Python 3.5+）
+- 复杂类型使用 `typing` 模块
+
+```python
+def get_user(user_id: int) -> dict | None:
+    ...
+```
+
+### 字符串格式化
+
+- 优先使用 f-string（Python 3.6+）
+- 禁止使用 `%` 格式化
+- `str.format()` 仅在 f-string 不适用时使用
+
+```python
+# ✅
+name = f"Hello, {user.name}"
+
+# ❌
+name = "Hello, %s" % user.name
+```
+
+### 异常处理
+
+- 禁止裸 `except:`，必须捕获具体异常
+- 使用 `logging` 记录异常，禁止 `print` 输出错误
+
+```python
+# ✅
+try:
+    result = do_something()
+except ValueError as e:
+    logger.error("处理失败: %s", e)
+
+# ❌
+try:
+    result = do_something()
+except:
+    print("error")
+```
+
+### 常量与配置
+
+- 常量使用 `UPPER_SNAKE_CASE` 命名
+- 敏感配置通过环境变量读取，禁止硬编码
+
+```python
+import os
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///default.db")
+```
+
+## 虚拟环境
+
+- 项目应使用虚拟环境隔离依赖（`venv`、`conda`、`poetry` 等）
+- 虚拟环境目录不得提交到版本控制

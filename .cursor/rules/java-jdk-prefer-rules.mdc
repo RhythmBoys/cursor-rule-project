@@ -1,0 +1,90 @@
+---
+description: JDK内置方法优先规则 - 当JDK已有相同功能时禁止引入三方库
+globs: "**/*.java"
+alwaysApply: false
+---
+
+# Java JDK Prefer Rules
+
+## 核心原则
+
+JDK 中已有相同功能的方法时，优先使用 JDK 原生实现，避免不必要的三方依赖。
+
+## 常见替换对照
+
+### 字符串处理
+
+| 场景 | JDK 原生 ✅ | 避免使用 ❌ |
+|------|------------|-----------|
+| 判空/空白 | `String.isBlank()` (JDK 11+) | `StringUtils.isBlank()` |
+| 判空 | `String.isEmpty()` | `StringUtils.isEmpty()` |
+| 拼接 | `String.join()` | `StringUtils.join()` |
+| 格式化 | `String.format()` / `String.formatted()` (JDK 15+) | 三方 format 工具 |
+| 重复 | `String.repeat(n)` (JDK 11+) | `StringUtils.repeat()` |
+| 去空白 | `String.strip()` (JDK 11+) | `StringUtils.trim()` |
+
+### 集合操作
+
+| 场景 | JDK 原生 ✅ | 避免使用 ❌ |
+|------|------------|-----------|
+| 不可变 List | `List.of()` / `List.copyOf()` | `Collections.unmodifiableList()` + `Arrays.asList()` |
+| 不可变 Map | `Map.of()` / `Map.copyOf()` | Guava `ImmutableMap` |
+| 不可变 Set | `Set.of()` / `Set.copyOf()` | Guava `ImmutableSet` |
+| 集合判空 | `collection.isEmpty()` | `CollectionUtils.isEmpty()` |
+| 数组转流 | `Arrays.stream()` | 三方工具转流 |
+
+### 对象与工具
+
+| 场景 | JDK 原生 ✅ | 避免使用 ❌ |
+|------|------------|-----------|
+| 空值检查 | `Objects.isNull()` / `Objects.nonNull()` | 三方 null 工具 |
+| equals 安全调用 | `Objects.equals(a, b)` | 手动判空后 equals |
+| hashCode | `Objects.hash()` | 手动计算 |
+| toString 安全 | `Objects.toString(obj, default)` | 三方 toString |
+| 文件读写 | `Files.readString()` / `Files.writeString()` (JDK 11+) | IOUtils / FileUtils |
+| HTTP 请求 | `HttpClient` (JDK 11+) | 简单场景下的 HttpClient 三方库 |
+
+## 代码示例
+
+### 错误示例 ❌
+
+```java
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.collections4.CollectionUtils;
+
+public class UserService {
+
+    public boolean validate(String name, List<String> roles) {
+        if (StringUtils.isBlank(name)) {
+            return false;
+        }
+        if (CollectionUtils.isEmpty(roles)) {
+            return false;
+        }
+        return StringUtils.join(roles, ",").contains("admin");
+    }
+}
+```
+
+### 正确示例 ✅
+
+```java
+public class UserService {
+
+    public boolean validate(String name, List<String> roles) {
+        if (name == null || name.isBlank()) {
+            return false;
+        }
+        if (roles == null || roles.isEmpty()) {
+            return false;
+        }
+        return String.join(",", roles).contains("admin");
+    }
+}
+```
+
+## 例外情况
+
+- **JDK 版本限制**: 项目 JDK < 11 时，部分方法不可用，可使用三方替代
+- **功能超出 JDK**: 三方库提供的增强功能（如 `StringUtils.substringBetween()`）JDK 无等价实现时可使用
+- **已有深度依赖**: 项目已广泛使用某三方库时，不必为统一而大规模重构，新代码遵守即可
