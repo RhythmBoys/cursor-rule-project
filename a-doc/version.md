@@ -1,5 +1,11 @@
 # 版本记录
 
+## v1.3.0 (2026-04-14)
+
+- 新增：interview-review 规则（面试复盘自动生成）
+- 新增：`a-doc/interview/technical.md` 项目技术说明
+- 新增：`a-doc/interview/readme.md` 面试准备（技术难点 + 10 道面试题）
+
 ## v1.2.0 (2026-04-13)
 
 - 新增：Python 项目规范规则（依赖管理、项目结构、编码规范）
